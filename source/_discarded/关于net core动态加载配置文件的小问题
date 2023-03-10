@@ -1,0 +1,70 @@
+title: 关于net core动态加载配置文件的小问题
+author: odinsam
+tags:
+  - 配置文件
+  - config
+  - net core
+categories:
+  - Net Core小问题
+date: 2021-05-24 23:45:00
+---
+> 需求场景:
+
+    serviceConfig中有对应的一系列配置文件。其中cnf.json为主配置文件,里边有当前项目的运行环境的配置，还有其他的文件夹以及对应的其他的配置文件。
+    现在需要在Config Builder之前递归加载所有的配置文件。
+
+> 问题:
+
+    在编码后运行发现，总是找不对对应的配置文件（win 10环境），代码如下:
+
+    ```
+    public void LoadConfigFiles(string currentPath, IConfigurationBuilder config)
+    {
+        foreach (var item in Directory.GetFiles(currentPath))
+        {
+            if (Path.GetFileName(item) != "cnf.json")
+            {
+                if (File.Exists(item))
+                    config.Add(new JsonConfigurationSource { Path = item, Optional = false, ReloadOnChange = true });     
+            }
+        }
+        var dir = Directory.GetDirectories(currentPath);
+        if (dir != null && dir.Length > 0)
+        {
+            foreach (var dirItem in dir)
+            {
+                if (!Path.GetDirectoryName(dirItem).EndsWith(Path.Combine(FileHelper.DirectorySeparatorChar, "envConfig")))
+                    LoadConfigFiles(dirItem, config);
+            }
+        }
+    }
+    ```
+    代码总是报错，提示找不对config文件
+
+> 解决:
+
+    最后发现 config.add 加载的文件路径需要是相对路径而不能是绝对路径，解决代码如下:
+    ```
+    public void LoadConfigFiles(string currentPath, IConfigurationBuilder config, string rootPath)
+    {
+        foreach (var item in Directory.GetFiles(currentPath))
+        {
+            if (Path.GetFileName(item) != "cnf.json")
+            {
+                
+                var configPath = item.Replace(rootPath, "");
+                if (File.Exists(item))
+                    config.Add(new JsonConfigurationSource { Path = configPath, Optional = false, ReloadOnChange = true });     //config.add 加载的文件 路径需要是相对路径 而不能是绝对路径
+            }
+        }
+        var dir = Directory.GetDirectories(currentPath);
+        if (dir != null && dir.Length > 0)
+        {
+            foreach (var dirItem in dir)
+            {
+                if (!Path.GetDirectoryName(dirItem).EndsWith(Path.Combine(FileHelper.DirectorySeparatorChar, "envConfig")))
+                    LoadConfigFiles(dirItem, config, rootPath);
+            }
+        }
+    }
+    ```
