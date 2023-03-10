@@ -1,0 +1,8 @@
+.DS_Store
+Thumbs.db
+*.log
+public/
+.deploy*/
+node_modules/
+# themes/pure/_config.yml
+# _config.yml

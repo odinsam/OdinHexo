@@ -1,1 +1,3 @@
-# OdinHexo
+# hexo
+
+### https://blog.odinsam.com
